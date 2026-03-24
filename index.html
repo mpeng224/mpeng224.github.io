@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>5-Day Wordle Challenge</title>
+    <style>
+        :root {
+            --green: #6aaa64; --yellow: #c9b458; --gray: #787c7e;
+            --black: #121213; --border: #3a3a3c; --white: #ffffff;
+        }
+        body {
+            background-color: var(--black); color: var(--white);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; margin: 0; overflow: hidden;
+        }
+        header { border-bottom: 1px solid var(--border); width: 100%; text-align: center; padding: 10px 0; }
+        #game-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 10px; }
+        .row { display: flex; gap: 5px; }
+        .tile {
+            width: 50px; height: 50px; border: 2px solid var(--border);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2rem; font-weight: bold; text-transform: uppercase;
+        }
+        .tile[data-state="correct"] { background-color: var(--green); border-color: var(--green); }
+        .tile[data-state="present"] { background-color: var(--yellow); border-color: var(--yellow); }
+        .tile[data-state="absent"] { background-color: var(--gray); border-color: var(--gray); }
+        
+        #keyboard { display: flex; flex-direction: column; gap: 8px; padding: 10px; width: 100%; max-width: 500px; }
+        .kb-row { display: flex; justify-content: center; gap: 4px; }
+        .key {
+            background-color: #818384; border-radius: 4px; height: 58px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; font-weight: bold; flex: 1; user-select: none;
+        }
+        .key.large { flex: 1.5; }
+
+        /* Modal Styles */
+        #modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #1a1a1b; padding: 30px; border-radius: 10px; border: 1px solid var(--border);
+            text-align: center; display: none; z-index: 10; width: 80%; max-width: 300px;
+        }
+        #modal button {
+            background: var(--green); color: white; border: none; padding: 10px 20px;
+            font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<header><h1>CHALLENGE DAY <span id="day-number">1</span></h1></header>
+
+<div id="game-container"></div>
+
+<div id="keyboard">
+    <div class="kb-row">
+        <div class="key" onclick="handleKey('Q')">Q</div><div class="key" onclick="handleKey('W')">W</div><div class="key" onclick="handleKey('E')">E</div><div class="key" onclick="handleKey('R')">R</div><div class="key" onclick="handleKey('T')">T</div><div class="key" onclick="handleKey('Y')">Y</div><div class="key" onclick="handleKey('U')">U</div><div class="key" onclick="handleKey('I')">I</div><div class="key" onclick="handleKey('O')">O</div><div class="key" onclick="handleKey('P')">P</div>
+    </div>
+    <div class="kb-row">
+        <div class="key" onclick="handleKey('A')">A</div><div class="key" onclick="handleKey('S')">S</div><div class="key" onclick="handleKey('D')">D</div><div class="key" onclick="handleKey('F')">F</div><div class="key" onclick="handleKey('G')">G</div><div class="key" onclick="handleKey('H')">H</div><div class="key" onclick="handleKey('J')">J</div><div class="key" onclick="handleKey('K')">K</div><div class="key" onclick="handleKey('L')">L</div>
+    </div>
+    <div class="kb-row">
+        <div class="key large" onclick="handleKey('ENTER')">ENTER</div>
+        <div class="key" onclick="handleKey('Z')">Z</div><div class="key" onclick="handleKey('X')">X</div><div class="key" onclick="handleKey('C')">C</div><div class="key" onclick="handleKey('V')">V</div><div class="key" onclick="handleKey('B')">B</div><div class="key" onclick="handleKey('N')">N</div><div class="key" onclick="handleKey('M')">M</div>
+        <div class="key large" onclick="handleKey('BACKSPACE')">⌫</div>
+    </div>
+</div>
+
+<div id="modal">
+    <h2 id="modal-title">TITLE</h2>
+    <p id="modal-msg"></p>
+    <p id="modal-stats"></p>
+    <button onclick="share()">SHARE RESULTS 📋</button>
+</div>
+
+<script>
+    // --- CONFIGURATION ---
+    const CHALLENGE_WORDS = ["BLOOD", "CELLS", "PLATE", "SMEAR", "LABOR"]; // Change these!
+    const START_DATE = new Date("2026-03-24"); // The date Day 1 starts (YYYY-MM-DD)
+    // ---------------------
+
+    const dayIndex = Math.floor((new Date() - START_DATE) / (1000 * 60 * 60 * 24));
+    const targetWord = (dayIndex >= 0 && dayIndex < 5) ? CHALLENGE_WORDS[dayIndex].toUpperCase() : "DONE";
+    
+    let currentGuess = "";
+    let guesses = [];
+    let gameOver = false;
+
+    // Load persistence
+    const storageKey = `wordle_day_${dayIndex}`;
+    const saved = JSON.parse(localStorage.getItem(storageKey));
+    if (saved) { guesses = saved.guesses; gameOver = saved.gameOver; }
+
+    function initBoard() {
+        document.getElementById('day-number').innerText = dayIndex + 1;
+        const container = document.getElementById('game-container');
+        if (targetWord === "DONE") {
+            container.innerHTML = "<h2>Challenge not active or completed!</h2>";
+            return;
+        }
+        for (let i = 0; i < 6; i++) {
+            const row = document.createElement('div');
+            row.className = 'row';
+            for (let j = 0; j < 5; j++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.id = `tile-${i}-${j}`;
+                row.appendChild(tile);
+            }
+            container.appendChild(row);
+        }
+        guesses.forEach((g, i) => revealWord(g, i));
+        if (gameOver) showModal();
+    }
+
+    function handleKey(key) {
+        if (gameOver || targetWord === "DONE") return;
+        if (key === "ENTER") {
+            if (currentGuess.length === 5) submitGuess();
+        } else if (key === "BACKSPACE") {
+            currentGuess = currentGuess.slice(0, -1);
+        } else if (currentGuess.length < 5 && /^[A-Z]$/.test(key)) {
+            currentGuess += key;
+        }
+        updateBoard();
+    }
+
+    function updateBoard() {
+        const rowIdx = guesses.length;
+        for (let j = 0; j < 5; j++) {
+            const tile = document.getElementById(`tile-${rowIdx}-${j}`);
+            tile.innerText = currentGuess[j] || "";
+        }
+    }
+
+    function submitGuess() {
+        guesses.push(currentGuess);
+        revealWord(currentGuess, guesses.length - 1);
+        if (currentGuess === targetWord || guesses.length === 6) {
+            gameOver = true;
+            showModal();
+        }
+        currentGuess = "";
+        localStorage.setItem(storageKey, JSON.stringify({guesses, gameOver}));
+    }
+
+    function revealWord(guess, rowIdx) {
+        const rowTiles = Array.from({length: 5}, (_, j) => document.getElementById(`tile-${rowIdx}-${j}`));
+        const targetArr = targetWord.split('');
+        
+        // First pass: Correct positions
+        guess.split('').forEach((letter, i) => {
+            rowTiles[i].innerText = letter;
+            if (letter === targetWord[i]) {
+                rowTiles[i].setAttribute('data-state', 'correct');
+                targetArr[i] = null;
+            }
+        });
+
+        // Second pass: Present/Absent
+        guess.split('').forEach((letter, i) => {
+            if (rowTiles[i].getAttribute('data-state')) return;
+            const idx = targetArr.indexOf(letter);
+            if (idx !== -1) {
+                rowTiles[i].setAttribute('data-state', 'present');
+                targetArr[idx] = null;
+            } else {
+                rowTiles[i].setAttribute('data-state', 'absent');
+            }
+        });
+    }
+
+    function showModal() {
+        const win = guesses[guesses.length - 1] === targetWord;
+        document.getElementById('modal-title').innerText = win ? "Amazing!" : "Next Time!";
+        document.getElementById('modal-msg').innerText = win ? `You got it in ${guesses.length}!` : `The word was ${targetWord}`;
+        document.getElementById('modal').style.display = 'block';
+    }
+
+    function share() {
+        let grid = `Challenge Day ${dayIndex + 1} (${guesses.length}/6)\n`;
+        guesses.forEach(g => {
+            let rowStr = "";
+            let tempTarget = targetWord.split('');
+            let rowStates = new Array(5).fill('⬛');
+            
+            g.split('').forEach((l, i) => {
+                if (l === targetWord[i]) { rowStates[i] = '🟩'; tempTarget[i] = null; }
+            });
+            g.split('').forEach((l, i) => {
+                if (rowStates[i] !== '🟩') {
+                    let idx = tempTarget.indexOf(l);
+                    if (idx !== -1) { rowStates[i] = '🟨'; tempTarget[idx] = null; }
+                }
+            });
+            grid += rowStates.join('') + "\n";
+        });
+        navigator.clipboard.writeText(grid);
+        alert("Copied results to clipboard!");
+    }
+
+    window.addEventListener('keydown', (e) => handleKey(e.key.toUpperCase()));
+    initBoard();
+</script>
+</body>
+</html>
