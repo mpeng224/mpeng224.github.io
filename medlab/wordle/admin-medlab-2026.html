@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MedLab Admin</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+        textarea { width: 100%; height: 100px; }
+        .box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>MedLab Dictionary Encoder</h1>
+    <div class="box">
+        <h3>Input Words (Comma Separated)</h3>
+        <textarea id="input">BLAST, SMEAR, COAGS</textarea>
+        <button onclick="encode()">Generate JSON for script.js</button>
+    </div>
+    <div class="box">
+        <h3>Output (Copy this to ENCODED_DATABASE)</h3>
+        <textarea id="output" readonly></textarea>
+    </div>
+
+    <script>
+        function encode() {
+            const raw = document.getElementById('input').value;
+            const arr = raw.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length === 5);
+            const encoded = arr.map(s => btoa(s));
+            document.getElementById('output').value = JSON.stringify(encoded, null, 2);
+        }
+    </script>
+</body>
+</html>
