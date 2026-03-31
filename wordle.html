@@ -211,8 +211,19 @@
     }
 
     async function share() {
-        let grid = `Lab Challenge Day ${dayIndex + 1} (${guesses.length}/6)\n`;
-        // Sharing logic (omitted for brevity, same as previous version)
+        let grid = `Challenge Day ${dayIndex + 1} (${guesses.length}/6)\n`;
+        guesses.forEach(g => {
+            let rowStates = new Array(5).fill('⬛');
+            let tempTarget = targetWord.split('');
+            g.split('').forEach((l, i) => { if (l === targetWord[i]) { rowStates[i] = '🟩'; tempTarget[i] = null; } });
+            g.split('').forEach((l, i) => {
+                if (rowStates[i] !== '🟩') {
+                    let idx = tempTarget.indexOf(l);
+                    if (idx !== -1) { rowStates[i] = '🟨'; tempTarget[idx] = null; }
+                }
+            });
+            grid += rowStates.join('') + "\n";
+        });
         if (navigator.share) await navigator.share({ text: grid });
         else { navigator.clipboard.writeText(grid); alert("Copied!"); }
     }
