@@ -1,0 +1,120 @@
+:root {
+    --green: #6aaa64;
+    --yellow: #c9b458;
+    --gray: #3a3a3c;
+    --absent: #121213;
+    --border: #3a3a3c;
+    --bg: #121213;
+    --text: #ffffff;
+    --key-bg: #818384;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: -webkit-fill-available;
+    overflow: hidden;
+    touch-action: manipulation;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    height: 50px;
+    padding: 0 16px;
+}
+
+h1 { font-size: 1.1rem; letter-spacing: 1.5px; margin: 0; font-weight: 700; }
+.highlight { color: var(--green); }
+
+#game-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+#board {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    grid-gap: 5px;
+    height: 100%;
+    max-height: 420px;
+    aspect-ratio: 5 / 6;
+}
+
+.row { display: grid; grid-template-columns: repeat(5, 1fr); grid-gap: 5px; }
+
+.tile {
+    border: 2px solid var(--border);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    user-select: none;
+    transition: transform 0.1s;
+}
+
+.tile[data-state="toggled"] { border-color: #565758; }
+
+/* Keyboard */
+#keyboard {
+    height: 200px;
+    padding: 0 8px 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+.key-row { display: flex; justify-content: center; margin-bottom: 8px; width: 100%; }
+
+.key {
+    background-color: var(--key-bg);
+    color: white;
+    border: 0;
+    border-radius: 4px;
+    margin: 0 3px;
+    height: 58px;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.key.large { flex: 1.5; font-size: 0.75rem; }
+
+/* Feedback Classes */
+.correct { background-color: var(--green) !important; border-color: var(--green) !important; }
+.present { background-color: var(--yellow) !important; border-color: var(--yellow) !important; }
+.absent { background-color: var(--gray) !important; border-color: var(--gray) !important; }
+
+/* Animations */
+.shake { animation: shake 0.5s; }
+@keyframes shake {
+    0%, 100% {transform: translateX(0);}
+    20%, 60% {transform: translateX(-5px);}
+    40%, 80% {transform: translateX(5px);}
+}
+
+/* Modal Styling */
+#modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal { background: #1a1a1b; padding: 30px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; border: 1px solid #333; }
+.hidden { display: none !important; }
+.close-btn { margin-top: 20px; background: var(--green); border: none; padding: 10px 20px; color: white; border-radius: 4px; cursor: pointer; }
