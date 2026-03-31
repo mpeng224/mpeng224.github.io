@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+    <title>BCIT MedLab Wordle</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="menu-left"></div>
+        <h1>MEDLAB <span class="highlight">WORDLE</span></h1>
+        <div class="menu-right">
+            <button id="stats-btn" onclick="showStats()">📊</button>
+        </div>
+    </header>
+
+    <main id="game-container">
+        <div id="board"></div>
+    </main>
+
+    <div id="keyboard"></div>
+
+    <div id="modal-overlay" class="hidden">
+        <div class="modal">
+            <h2 id="modal-title">STATISTICS</h2>
+            <div id="stats-content"></div>
+            <p id="modal-message"></p>
+            <div id="share-section" class="hidden">
+                <button id="share-btn">SHARE RESULTS 📤</button>
+            </div>
+            <button class="close-btn" onclick="closeModal()">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
