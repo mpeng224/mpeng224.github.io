@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>5-Day MedLab Wordle</title>
+    <title>MedLab Wordle Challenge</title>
     <style>
         :root {
             --green: #6aaa64; --yellow: #c9b458; --gray: #3a3a3c;
@@ -13,10 +13,13 @@
         * { box-sizing: border-box; touch-action: manipulation; }
         body {
             background-color: var(--black); color: var(--white);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden;
         }
-        header { border-bottom: 1px solid var(--border); height: 50px; display: flex; align-items: center; justify-content: center; }
+        header { border-bottom: 1px solid var(--border); height: 50px; display: flex; align-items: center; justify-content: center; position: relative; }
+        header h1 { font-size: 1.1rem; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+        .version-tag { position: absolute; right: 10px; font-size: 0.6rem; color: #565758; }
+
         #game-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; }
         .row { display: flex; gap: 5px; }
         .tile {
@@ -33,7 +36,7 @@
         .key {
             background-color: #818384; border-radius: 4px; height: 58px;
             display: flex; justify-content: center; align-items: center;
-            cursor: pointer; font-weight: bold; flex: 1; font-size: 0.9rem; transition: background 0.2s;
+            cursor: pointer; font-weight: bold; flex: 1; font-size: 0.8rem; transition: background 0.2s;
         }
         .key.large { flex: 1.5; font-size: 0.7rem; }
         #toast { position: fixed; top: 15%; left: 50%; transform: translateX(-50%); background: white; color: black; padding: 10px 20px; border-radius: 5px; font-weight: bold; display: none; z-index: 1000; }
@@ -44,7 +47,10 @@
 <body>
 
 <div id="toast">Not in word list</div>
-<header><h1>Day <span id="day-number">1</span>: Lab Challenge</h1></header>
+<header>
+    <h1>Day <span id="day-number">1</span>: Lab Challenge</h1>
+    <span class="version-tag" id="v-display"></span>
+</header>
 <div id="game-container"></div>
 
 <div id="keyboard">
@@ -68,18 +74,20 @@
 </div>
 
 <script>
+    // CHANGE THIS WHEN UPDATING
+    const APP_VERSION = "1.0.1"; 
     const CHALLENGE_WORDS = ["COCCI", "ELISA", "EOSIN", "STAPH", "COOMB"];
-    // Starting on March 30, 2026 (Month index 2 = March)
+    // JS Months are 0-indexed (2 = March). User requested March 30, 2026.
     const START_DATE = new Date(2026, 2, 30); 
     
     const LAB_WORDS = [
         "AGAR", "STAIN", "MEDIA", "VIRUS", "COCCI", "GRAMS", "SLIDE", "SPORE", "YEAST", "PRION",
         "PETRI", "TUBES", "SWABS", "ASSAY", "TITRE", "TOXIN", "AEROB", "SERUM", "HYPHA", "FUNGI",
-        "BLAST", "BASOS", "EOSIN", "LYMPH", "NEUTS", "PLASMA", "DIFFS", "CBCS", "HEMES", "DONOR",
-        "UNITS", "CROSS", "MATCH", "ABPOS", "ABNEG", "RHNEG", "RHPOS", "TYPED", "GROUP", "COOMB",
-        "LIPID", "RENAL", "URINE", "BASES", "SALTS", "ACIDS", "SUGAR", "PANEL", "TESTS", "ELISA",
-        "PTINR", "URATE", "SALVA", "FECES", "TISSUE", "FIXES", "BLOCK", "MOUNT", "SLICE", "GROSS",
-        "CLEAR", "ORGAN", "EMBED", "LUCID", "SMEAR", "VALVE", "NODES"
+        "BLAST", "BASOS", "EOSIN", "LYMPH", "NEUTS", "PLASMA", "DIFFS", "DONOR", "CROSS", "MATCH", 
+        "ABPOS", "ABNEG", "RHNEG", "RHPOS", "TYPED", "GROUP", "COOMB", "LIPID", "RENAL", "URINE", 
+        "BASES", "SALTS", "ACIDS", "SUGAR", "PANEL", "TESTS", "ELISA", "PTINR", "URATE", "SALVA", 
+        "FECES", "FIXES", "BLOCK", "MOUNT", "SLICE", "GROSS", "CLEAR", "ORGAN", "EMBED", "LUCID", 
+        "VALVE", "NODES", "WBCS", "RBCS", "PLTS", "LYSIS", "HEMES", "TISSUE"
     ];
 
     let validWords = new Set();
@@ -89,7 +97,16 @@
     let currentGuess = "";
     let guesses = [];
     let gameOver = false;
-    let keyStates = {}; // Tracks the color state of keyboard letters
+    let keyStates = {}; 
+
+    function checkVersion() {
+        const savedVersion = localStorage.getItem('ml_wordle_v');
+        if (savedVersion !== APP_VERSION) {
+            localStorage.clear(); 
+            localStorage.setItem('ml_wordle_v', APP_VERSION);
+        }
+        document.getElementById('v-display').innerText = "v" + APP_VERSION;
+    }
 
     async function loadDictionary() {
         try {
@@ -98,10 +115,11 @@
             validWords = new Set(text.toUpperCase().split('\n').map(w => w.trim()));
             LAB_WORDS.forEach(w => validWords.add(w.toUpperCase()));
             CHALLENGE_WORDS.forEach(w => validWords.add(w.toUpperCase()));
-        } catch (e) { console.error("Dictionary load fail", e); }
+        } catch (e) { console.error("Dictionary fail", e); }
     }
 
     function initBoard() {
+        checkVersion();
         document.getElementById('day-number').innerText = dayIndex + 1;
         const container = document.getElementById('game-container');
         if (targetWord === "DONE") { container.innerHTML = "<h2>Challenge Complete!</h2>"; return; }
@@ -167,7 +185,7 @@
         const rowTiles = Array.from({length: 5}, (_, j) => document.getElementById(`tile-${rowIdx}-${j}`));
         const targetArr = targetWord.split('');
         
-        // Pass 1: Correct letters
+        // Pass 1: Correct
         guess.split('').forEach((letter, i) => {
             if (letter === targetWord[i]) {
                 rowTiles[i].setAttribute('data-state', 'correct');
@@ -176,7 +194,7 @@
             }
         });
 
-        // Pass 2: Present and Absent
+        // Pass 2: Present/Absent
         guess.split('').forEach((letter, i) => {
             if (rowTiles[i].getAttribute('data-state')) return;
             const idx = targetArr.indexOf(letter);
@@ -193,10 +211,7 @@
 
     function updateKeyState(letter, state) {
         const priority = { 'correct': 3, 'present': 2, 'absent': 1, undefined: 0 };
-        const currentPriority = priority[keyStates[letter]];
-        const newPriority = priority[state];
-
-        if (newPriority > currentPriority) {
+        if (priority[state] > (priority[keyStates[letter]] || 0)) {
             keyStates[letter] = state;
             const keyEl = document.getElementById(`key-${letter}`);
             if (keyEl) keyEl.setAttribute('data-state', state);
@@ -205,13 +220,13 @@
 
     function showModal() {
         const win = guesses[guesses.length - 1] === targetWord;
-        document.getElementById('modal-title').innerText = win ? "Genius!" : "Lab Result In:";
+        document.getElementById('modal-title').innerText = win ? "Genius!" : "Result Out:";
         document.getElementById('modal-msg').innerText = win ? `Solved in ${guesses.length}/6` : `Target: ${targetWord}`;
         document.getElementById('modal').style.display = 'block';
     }
 
     async function share() {
-        let grid = `Challenge Day ${dayIndex + 1} (${guesses.length}/6)\n`;
+        let grid = `Lab Wordle Day ${dayIndex + 1} (${guesses.length}/6)\n`;
         guesses.forEach(g => {
             let rowStates = new Array(5).fill('⬛');
             let tempTarget = targetWord.split('');
