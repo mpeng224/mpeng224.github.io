@@ -75,7 +75,7 @@
 
 <script>
     // CHANGE THIS WHEN UPDATING
-    const APP_VERSION = "1.0.2"; 
+    const APP_VERSION = "1.0.3"; 
     const CHALLENGE_WORDS = [
         "EOSIN", "SPORE", "SWABS", "CODON", "STREP", 
         "URINE", "LIPID", "GLASS", "METER", "AMINE",
@@ -249,7 +249,8 @@
     }
 
     async function share() {
-        let grid = `Lab Wordle Day ${dayIndex + 1} (${guesses.length}/6)\n`;
+        const dateStr = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        let grid = `Lab Wordle ${dateStr} (${guesses.length}/6)\n`;
         guesses.forEach(g => {
             let rowStates = new Array(5).fill('⬛');
             let tempTarget = targetWord.split('');
