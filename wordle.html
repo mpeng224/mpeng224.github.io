@@ -48,7 +48,7 @@
 
 <div id="toast">Not in word list</div>
 <header>
-    <h1>Day <span id="day-number">1</span>: Lab Challenge</h1>
+    <h1><span id="date-display"></span>: Lab Challenge</h1>
     <span class="version-tag" id="v-display"></span>
 </header>
 <div id="game-container"></div>
@@ -75,10 +75,31 @@
 
 <script>
     // CHANGE THIS WHEN UPDATING
-    const APP_VERSION = "1.0.1"; 
-    const CHALLENGE_WORDS = ["COCCI", "ELISA", "EOSIN", "STAPH", "COOMB"];
-    // JS Months are 0-indexed (2 = March). User requested March 30, 2026.
-    const START_DATE = new Date(2026, 2, 30); 
+    const APP_VERSION = "1.0.2"; 
+    const CHALLENGE_WORDS = [
+        "EOSIN", "SPORE", "SWABS", "CODON", "STREP", 
+        "URINE", "LIPID", "GLASS", "METER", "AMINE",
+        "CLONE", "SMEAR", "FLUID", "TOXIC", "RACKS", 
+        "DONOR", "HEART", "PIPET", "TUBES", "TRACE",
+        "VIRUS", "NERVE", "GRAFT", "SLIDE", "YEAST", 
+        "COCCI", "DNASE", "FUNGI", "BLOOD", "ERROR",
+        "PANEL", "CYSTS", "CURVE", "MOLAR", "TITER", 
+        "LIMIT", "BENCH", "FEVER", "LYMPH", "STAPH",
+        "BLAST", "LUNGS", "ACIDS", "LOCUS", "GROUP", 
+        "PRION", "MICRO", "PROBE", "MIXER", "EXONS",
+        "SUGAR", "FLORA", "CLOTS", "IONIC", "BRAIN", 
+        "RNASE", "SERUM", "BLIND", "LASER", "BLEED",
+        "AGARS", "FOCUS", "ROTOR", "PHAGE", "DOSES", 
+        "EDEMA", "BASES", "DRUGS", "HELIX", "MUCUS",
+        "FATAL", "ASSAY", "GLOVE", "HOODS", "CILIA", 
+        "STAIN", "RENAL", "CYCLE", "NODES", "PETRI",
+        "GRAMS", "BONES", "KREBS", "ORGAN", "ACUTE", 
+        "PRICK", "GAUGE", "BROTH", "COATS", "PUMPS",
+        "RANGE", "BATCH", "GRAPH", "SLANT", "GLAND", 
+        "LIVER", "GENES", "TOXIN", "STAGE", "FLASK"
+    ];
+    
+    const START_DATE = new Date(2026, 3, 9); 
     
     const LAB_WORDS = [
         "AGAR", "STAIN", "MEDIA", "VIRUS", "COCCI", "GRAMS", "SLIDE", "SPORE", "YEAST", "PRION",
@@ -92,7 +113,7 @@
 
     let validWords = new Set();
     const dayIndex = Math.floor((new Date() - START_DATE) / (1000 * 60 * 60 * 24));
-    const targetWord = (dayIndex >= 0 && dayIndex < 5) ? CHALLENGE_WORDS[dayIndex].toUpperCase() : "DONE";
+    const targetWord = (dayIndex >= 0 && dayIndex < CHALLENGE_WORDS.length) ? CHALLENGE_WORDS[dayIndex].toUpperCase() : "DONE";
     
     let currentGuess = "";
     let guesses = [];
@@ -120,7 +141,9 @@
 
     function initBoard() {
         checkVersion();
-        document.getElementById('day-number').innerText = dayIndex + 1;
+        const options = { weekday: 'long', month: 'short', day: 'numeric' };
+        document.getElementById('date-display').innerText = new Date().toLocaleDateString(undefined, options);
+        
         const container = document.getElementById('game-container');
         if (targetWord === "DONE") { container.innerHTML = "<h2>Challenge Complete!</h2>"; return; }
         
