@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MedLab Wordle Challenge</title>
+    <style>
+        :root {
+            --green: #6aaa64; --yellow: #c9b458; --gray: #3a3a3c;
+            --black: #121213; --border: #3a3a3c; --white: #ffffff;
+            --tile-size: min(65px, 13vw);
+        }
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--black); color: var(--white);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex; flex-direction: column; 
+            height: 100dvh; /* Dynamic height for mobile toolbars */
+            margin: 0; 
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
+        }
+        header { border-bottom: 1px solid var(--border); min-height: 50px; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; }
+        header h1 { font-size: 1.1rem; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+        .version-tag { position: absolute; right: 10px; font-size: 0.6rem; color: #565758; }
+
+        #game-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; padding: 10px 0; }
+        .row { display: flex; gap: 5px; }
+        .tile {
+            width: var(--tile-size); height: var(--tile-size); border: 2px solid var(--border);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.8rem; font-weight: bold; text-transform: uppercase;
+        }
+        .tile[data-state="correct"], .key[data-state="correct"] { background-color: var(--green); border-color: var(--green); color: white; }
+        .tile[data-state="present"], .key[data-state="present"] { background-color: var(--yellow); border-color: var(--yellow); color: white; }
+        .tile[data-state="absent"], .key[data-state="absent"] { background-color: var(--gray); border-color: var(--gray); color: white; }
+        
+        #keyboard { padding: 10px 5px; width: 100%; max-width: 500px; margin: 0 auto; flex-shrink: 0; touch-action: manipulation; }
+        .kb-row { display: flex; justify-content: center; gap: 4px; margin-bottom: 8px; }
+        .key {
+            background-color: #818384; border-radius: 4px; height: 58px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; font-weight: bold; flex: 1; font-size: 0.8rem; transition: background 0.2s;
+        }
+        .key.large { flex: 1.5; font-size: 0.7rem; }
+        #toast { position: fixed; top: 15%; left: 50%; transform: translateX(-50%); background: white; color: black; padding: 10px 20px; border-radius: 5px; font-weight: bold; display: none; z-index: 1000; }
+        #modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1b; padding: 25px; border-radius: 12px; border: 1px solid var(--border); text-align: center; display: none; z-index: 100; width: 85%; max-width: 320px; }
+        button { background: var(--green); color: white; border: none; padding: 12px 24px; font-weight: bold; border-radius: 4px; width: 100%; margin-top: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="toast">Not in word list</div>
+<header>
+    <h1><span id="date-display"></span>: Lab Challenge</h1>
+    <span class="version-tag" id="v-display"></span>
+</header>
+<div id="game-container"></div>
+
+<div id="keyboard">
+    <div class="kb-row">
+        <div class="key" id="key-Q" onclick="handleKey('Q')">Q</div><div class="key" id="key-W" onclick="handleKey('W')">W</div><div class="key" id="key-E" onclick="handleKey('E')">E</div><div class="key" id="key-R" onclick="handleKey('R')">R</div><div class="key" id="key-T" onclick="handleKey('T')">T</div><div class="key" id="key-Y" onclick="handleKey('Y')">Y</div><div class="key" id="key-U" onclick="handleKey('U')">U</div><div class="key" id="key-I" onclick="handleKey('I')">I</div><div class="key" id="key-O" onclick="handleKey('O')">O</div><div class="key" id="key-P" onclick="handleKey('P')">P</div>
+    </div>
+    <div class="kb-row">
+        <div class="key" id="key-A" onclick="handleKey('A')">A</div><div class="key" id="key-S" onclick="handleKey('S')">S</div><div class="key" id="key-D" onclick="handleKey('D')">D</div><div class="key" id="key-F" onclick="handleKey('F')">F</div><div class="key" id="key-G" onclick="handleKey('G')">G</div><div class="key" id="key-H" onclick="handleKey('H')">H</div><div class="key" id="key-J" onclick="handleKey('J')">J</div><div class="key" id="key-K" onclick="handleKey('K')">K</div><div class="key" id="key-L" onclick="handleKey('L')">L</div>
+    </div>
+    <div class="kb-row">
+        <div class="key large" onclick="handleKey('ENTER')">ENTER</div>
+        <div class="key" id="key-Z" onclick="handleKey('Z')">Z</div><div class="key" id="key-X" onclick="handleKey('X')">X</div><div class="key" id="key-C" onclick="handleKey('C')">C</div><div class="key" id="key-V" onclick="handleKey('V')">V</div><div class="key" id="key-B" onclick="handleKey('B')">B</div><div class="key" id="key-N" onclick="handleKey('N')">N</div><div class="key" id="key-M" onclick="handleKey('M')">M</div>
+        <div class="key large" onclick="handleKey('BACKSPACE')">⌫</div>
+    </div>
+</div>
+
+<div id="modal">
+    <h2 id="modal-title"></h2>
+    <p id="modal-msg"></p>
+    <button onclick="share()">SHARE RESULTS 📋</button>
+</div>
+
+<script>
+    const APP_VERSION = "1.0.3"; 
+    const CHALLENGE_WORDS = ["EOSIN", "SPORE", "SWABS", "CODON", "STREP", "URINE", "LIPID", "GLASS", "METER", "AMINE", "CLONE", "SMEAR", "FLUID", "TOXIC", "RACKS", "DONOR", "HEART", "PIPET", "TUBES", "TRACE", "VIRUS", "NERVE", "GRAFT", "SLIDE", "YEAST", "COCCI", "DNASE", "FUNGI", "BLOOD", "ERROR", "PANEL", "CYSTS", "CURVE", "MOLAR", "TITER", "LIMIT", "BENCH", "FEVER", "LYMPH", "STAPH", "BLAST", "LUNGS", "ACIDS", "LOCUS", "GROUP", "PRION", "MICRO", "PROBE", "MIXER", "EXONS", "SUGAR", "FLORA", "CLOTS", "IONIC", "BRAIN", "RNASE", "SERUM", "BLIND", "LASER", "BLEED", "AGARS", "FOCUS", "ROTOR", "PHAGE", "DOSES", "EDEMA", "BASES", "DRUGS", "HELIX", "MUCUS", "FATAL", "ASSAY", "GLOVE", "HOODS", "CILIA", "STAIN", "RENAL", "CYCLE", "NODES", "PETRI", "GRAMS", "BONES", "KREBS", "ORGAN", "ACUTE", "PRICK", "GAUGE", "BROTH", "COATS", "PUMPS", "RANGE", "BATCH", "GRAPH", "SLANT", "GLAND", "LIVER", "GENES", "TOXIN", "STAGE", "FLASK"];
+    const START_DATE = new Date(2026, 3, 9); 
+    const LAB_WORDS = ["AGAR", "STAIN", "MEDIA", "VIRUS", "COCCI", "GRAMS", "SLIDE", "SPORE", "YEAST", "PRION", "PETRI", "TUBES", "SWABS", "ASSAY", "TITRE", "TOXIN", "AEROB", "SERUM", "HYPHA", "FUNGI", "BLAST", "BASOS", "EOSIN", "LYMPH", "NEUTS", "PLASMA", "DIFFS", "DONOR", "CROSS", "MATCH", "ABPOS", "ABNEG", "RHNEG", "RHPOS", "TYPED", "GROUP", "COOMB", "LIPID", "RENAL", "URINE", "BASES", "SALTS", "ACIDS", "SUGAR", "PANEL", "TESTS", "ELISA", "PTINR", "URATE", "SALVA", "FECES", "FIXES", "BLOCK", "MOUNT", "SLICE", "GROSS", "CLEAR", "ORGAN", "EMBED", "LUCID", "VALVE", "NODES", "WBCS", "RBCS", "PLTS", "LYSIS", "HEMES", "TISSUE"];
+
+    let validWords = new Set();
+    const dayIndex = Math.floor((new Date() - START_DATE) / (1000 * 60 * 60 * 24));
+    const targetWord = (dayIndex >= 0 && dayIndex < CHALLENGE_WORDS.length) ? CHALLENGE_WORDS[dayIndex].toUpperCase() : "DONE";
+    
+    // SINGLE SOURCE OF TRUTH (State)
+    let gameState = {
+        guesses: [],
+        currentGuess: "",
+        gameOver: false,
+        keyStates: {}
+    };
+
+    function initBoard() {
+        // Version and Date setup
+        const savedVersion = localStorage.getItem('ml_wordle_v');
+        if (savedVersion !== APP_VERSION) { localStorage.clear(); localStorage.setItem('ml_wordle_v', APP_VERSION); }
+        document.getElementById('v-display').innerText = "v" + APP_VERSION;
+        document.getElementById('date-display').innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+
+        const container = document.getElementById('game-container');
+        if (targetWord === "DONE") { container.innerHTML = "<h2>Challenge Complete!</h2>"; return; }
+
+        // Create empty HTML grid once
+        for (let i = 0; i < 6; i++) {
+            const row = document.createElement('div');
+            row.className = 'row'; row.id = `row-${i}`;
+            for (let j = 0; j < 5; j++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile'; tile.id = `tile-${i}-${j}`;
+                row.appendChild(tile);
+            }
+            container.appendChild(row);
+        }
+
+        // Load saved state
+        const saved = JSON.parse(localStorage.getItem(`wordle_day_${dayIndex}`));
+        if (saved) {
+            gameState.guesses = saved.guesses;
+            gameState.gameOver = saved.gameOver;
+            // Pre-calculate keyboard colors for saved guesses
+            gameState.guesses.forEach(g => calculateKeyStates(g));
+            if (gameState.gameOver) setTimeout(showModal, 500);
+        }
+        render();
+    }
+
+    function render() {
+        if (targetWord === "DONE") return;
+        
+        for (let i = 0; i < 6; i++) {
+            const guess = gameState.guesses[i];
+            const isCurrentRow = (i === gameState.guesses.length);
+            
+            for (let j = 0; j < 5; j++) {
+                const tile = document.getElementById(`tile-${i}-${j}`);
+                if (guess) {
+                    // Finished row: show letter and color
+                    tile.innerText = guess[j];
+                    tile.setAttribute('data-state', getLetterState(guess, j));
+                } else if (isCurrentRow) {
+                    // Active typing row
+                    tile.innerText = gameState.currentGuess[j] || "";
+                    tile.style.borderColor = gameState.currentGuess[j] ? "#565758" : "";
+                    tile.removeAttribute('data-state');
+                } else {
+                    // Future row
+                    tile.innerText = "";
+                    tile.removeAttribute('data-state');
+                }
+            }
+        }
+        // Update keyboard colors
+        for (const [letter, state] of Object.entries(gameState.keyStates)) {
+            const keyEl = document.getElementById(`key-${letter}`);
+            if (keyEl) keyEl.setAttribute('data-state', state);
+        }
+    }
+
+    function getLetterState(guess, index) {
+        const letter = guess[index];
+        if (letter === targetWord[index]) return 'correct';
+        
+        // Complex logic for yellow to prevent double-highlights
+        const targetArr = targetWord.split('');
+        const guessArr = guess.split('');
+        
+        // Remove greens from consideration
+        guessArr.forEach((l, i) => { if (l === targetWord[i]) targetArr[i] = null; });
+        
+        if (targetArr.includes(letter)) {
+            // Only mark yellow if this specific instance hasn't been matched
+            const firstIdx = targetArr.indexOf(letter);
+            targetArr[firstIdx] = null;
+            
+            // Check if our current index is the one that deserves the yellow
+            let countBefore = 0;
+            for(let k=0; k<=index; k++) { if(guessArr[k] === letter && guessArr[k] !== targetWord[k]) countBefore++; }
+            
+            let targetCount = targetWord.split('').filter(l => l === letter).length;
+            let greenCount = guessArr.filter((l, i) => l === letter && l === targetWord[i]).length;
+            
+            return countBefore <= (targetCount - greenCount) ? 'present' : 'absent';
+        }
+        return 'absent';
+    }
+
+    function calculateKeyStates(guess) {
+        guess.split('').forEach((letter, i) => {
+            const state = (letter === targetWord[i]) ? 'correct' : (targetWord.includes(letter) ? 'present' : 'absent');
+            const priority = { 'correct': 3, 'present': 2, 'absent': 1, undefined: 0 };
+            if (priority[state] > (priority[gameState.keyStates[letter]] || 0)) {
+                gameState.keyStates[letter] = state;
+            }
+        });
+    }
+
+    function handleKey(key) {
+        if (gameState.gameOver || targetWord === "DONE") return;
+        if (key === "ENTER") { if (gameState.currentGuess.length === 5) submitGuess(); }
+        else if (key === "BACKSPACE" || key === "⌫") { gameState.currentGuess = gameState.currentGuess.slice(0, -1); }
+        else if (gameState.currentGuess.length < 5 && /^[A-Z]$/.test(key)) { gameState.currentGuess += key; }
+        render();
+    }
+
+    function submitGuess() {
+        if (!validWords.has(gameState.currentGuess)) {
+            const t = document.getElementById('toast');
+            t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000);
+            return;
+        }
+        const guess = gameState.currentGuess;
+        gameState.guesses.push(guess);
+        calculateKeyStates(guess);
+        
+        if (guess === targetWord || gameState.guesses.length === 6) {
+            gameState.gameOver = true;
+            setTimeout(showModal, 1000);
+        }
+        
+        localStorage.setItem(`wordle_day_${dayIndex}`, JSON.stringify({guesses: gameState.guesses, gameOver: gameState.gameOver}));
+        gameState.currentGuess = "";
+        render();
+    }
+
+    function showModal() {
+        const win = gameState.guesses[gameState.guesses.length - 1] === targetWord;
+        document.getElementById('modal-title').innerText = win ? "Genius!" : "Result Out:";
+        document.getElementById('modal-msg').innerText = win ? `Solved in ${gameState.guesses.length}/6` : `Target: ${targetWord}`;
+        document.getElementById('modal').style.display = 'block';
+    }
+
+    async function share() {
+        const dateStr = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        let grid = `Lab Wordle ${dateStr} (${gameState.guesses.length}/6)\n`;
+        
+        gameState.guesses.forEach(g => {
+            let rowIcons = ["⬛","⬛","⬛","⬛","⬛"];
+            let tempTarget = targetWord.split('');
+            g.split('').forEach((l, i) => { if (l === targetWord[i]) { rowIcons[i] = '🟩'; tempTarget[i] = null; } });
+            g.split('').forEach((l, i) => {
+                if (rowIcons[i] !== '🟩') {
+                    let idx = tempTarget.indexOf(l);
+                    if (idx !== -1) { rowIcons[i] = '🟨'; tempTarget[idx] = null; }
+                }
+            });
+            grid += rowIcons.join('') + "\n";
+        });
+        if (navigator.share) await navigator.share({ text: grid });
+        else { navigator.clipboard.writeText(grid); alert("Results copied to clipboard!"); }
+    }
+
+    async function loadDictionary() {
+        try {
+            const resp = await fetch('https://raw.githubusercontent.com/charlesreid1/five-letter-words/master/sgb-words.txt');
+            const text = await resp.text();
+            validWords = new Set(text.toUpperCase().split('\n').map(w => w.trim()));
+            LAB_WORDS.forEach(w => validWords.add(w.toUpperCase()));
+            CHALLENGE_WORDS.forEach(w => validWords.add(w.toUpperCase()));
+        } catch (e) { console.error("Dictionary fail", e); }
+    }
+
+    window.addEventListener('keydown', (e) => handleKey(e.key.toUpperCase()));
+    loadDictionary().then(initBoard);
+</script>
+</body>
+</html>
